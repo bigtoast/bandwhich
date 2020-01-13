@@ -33,12 +33,26 @@ use structopt::StructOpt;
 
 const DISPLAY_DELTA: time::Duration = time::Duration::from_millis(1000);
 
+#[derive(Debug)]
 enum BandKey {
-    INTERFACE,
-    LOCAL_PORT,
-    REMOTE_PORT,
-    REMOVE_HOST,
-    PROCESS
+    Interface,
+    LocalPort,
+    RemotePort,
+    RemoteHost,
+    Process,
+    Protocol
+}
+
+fn parse_band_key(src: &str) -> Result<BandKey,String> {
+    match src {
+        "interface" => Ok(BandKey::Interface),
+        "local_port" => Ok(BandKey::LocalPort),
+        "remote_port" => Ok(BandKey::RemotePort),
+        "remote_host" => Ok(BandKey::RemoteHost),
+        "process" => Ok(BandKey::Process),
+        "protocol" => Ok(BandKey::Protocol)
+        _ => Err(format!("Invalid Key: {}", src))
+    }
 }
 
 #[derive(StructOpt, Debug)]
@@ -54,10 +68,11 @@ pub struct Opt {
     /// Do not attempt to resolve IPs to their hostnames
     no_resolve: bool,
 
-    group: Option<String>,
+    //group: Option<String>,
 
-    tick: u32,
+    //tick: u32,
 
+    #[structopt(short, long, parse(try_from_str=parse_band_key))]
     keys: Option<Vec<BandKey>>
 }
 

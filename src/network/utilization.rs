@@ -45,7 +45,7 @@ impl Utilization {
             }
             Direction::Upload => {
                 total_bandwidth.total_bytes_uploaded += seg.data_length;
-                total_bandwidth.total_bytes_uploaded_hist += seg.data_length as u64q;
+                total_bandwidth.total_bytes_uploaded_hist += seg.data_length as u64;
             }
         }
     }
