@@ -33,6 +33,14 @@ use structopt::StructOpt;
 
 const DISPLAY_DELTA: time::Duration = time::Duration::from_millis(1000);
 
+enum BandKey {
+    INTERFACE,
+    LOCAL_PORT,
+    REMOTE_PORT,
+    REMOVE_HOST,
+    PROCESS
+}
+
 #[derive(StructOpt, Debug)]
 #[structopt(name = "bandwhich")]
 pub struct Opt {
@@ -45,6 +53,12 @@ pub struct Opt {
     #[structopt(short, long)]
     /// Do not attempt to resolve IPs to their hostnames
     no_resolve: bool,
+
+    group: Option<String>,
+
+    tick: u32,
+
+    keys: Option<Vec<BandKey>>
 }
 
 fn main() {
