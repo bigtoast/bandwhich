@@ -1,10 +1,10 @@
-#![deny(clippy::all)]
+//#![deny(clippy::all)]
 
 mod display;
 mod network;
 mod os;
-#[cfg(test)]
-mod tests;
+//#[cfg(test)]
+//mod tests;
 
 use display::{RawTerminalBackend, Ui};
 use network::{
@@ -19,16 +19,27 @@ use ::std::sync::atomic::{AtomicBool, Ordering};
 use ::std::sync::{Arc, Mutex};
 use ::std::thread::park_timeout;
 use ::std::{thread, time};
-use ::termion::event::{Event, Key};
+
 use ::tui::backend::Backend;
 
 use std::process;
 
 use ::std::io;
 use ::std::time::Instant;
-use ::termion::raw::IntoRawMode;
-use ::tui::backend::TermionBackend;
 use structopt::StructOpt;
+
+#[cfg(not(target_os = "windows"))]
+use ::tui::backend::TermionBackend;
+//use ::termion::event::{Event, Key};
+//use ::termion::raw::IntoRawMode;
+
+#[cfg(target_os = "windows")]
+use ::tui::backend::CrosstermBackend;
+use crossterm::{
+    event::{self, Event, KeyCode, KeyEvent},
+    terminal::{disable_raw_mode, enable_raw_mode, EnterAlternateScreen},
+    //Result,
+};
 
 const DISPLAY_DELTA: time::Duration = time::Duration::from_millis(1000);
 
@@ -50,8 +61,11 @@ pub struct Opt {
 
 #[derive(StructOpt, Debug)]
 pub struct RenderOpts {
+    #[structopt(short, long)]
     processes: bool,
+    #[structopt(short, long)]
     connections: bool,
+    #[structopt(short, long)]
     addresses: bool,
 }
 
@@ -63,8 +77,8 @@ fn main() {
 }
 
 fn try_main() -> Result<(), failure::Error> {
-    #[cfg(target_os = "windows")]
-    compile_error!("Sorry, no implementations for Windows yet :( - PRs welcome!");
+    //#[cfg(target_os = "windows")]
+    //compile_error!("Sorry, no implementations for Windows yet :( - PRs welcome!");
 
     use os::get_input;
     let opts = Opt::from_args();
@@ -74,14 +88,23 @@ fn try_main() -> Result<(), failure::Error> {
         let terminal_backend = RawTerminalBackend {};
         start(terminal_backend, os_input, opts);
     } else {
+        #[cfg(not(target_os = "windows"))]
         match io::stdout().into_raw_mode() {
-            Ok(stdout) => {
+            Ok(stdout) => {                
                 let terminal_backend = TermionBackend::new(stdout);
                 start(terminal_backend, os_input, opts);
             }
             Err(_) => failure::bail!(
                 "Failed to get stdout: if you are trying to pipe 'bandwhich' you should use the --raw flag"
             ),
+        }        
+        #[cfg(target_os = "windows")]
+        {
+            let mut stdout = io::stdout();
+            enable_raw_mode()?;            
+
+            let terminal_backend = CrosstermBackend::new(stdout);
+            start(terminal_backend, os_input, opts);
         }
     }
     Ok(())
@@ -96,10 +119,10 @@ pub struct OsInputOutput {
     pub network_interfaces: Vec<NetworkInterface>,
     pub network_frames: Vec<Box<dyn DataLinkReceiver>>,
     pub get_open_sockets: fn() -> OpenSockets,
-    pub keyboard_events: Box<dyn Iterator<Item = Event> + Send>,
+    //pub keyboard_events: Box<dyn Iterator<Item = Event> + Send>,
     pub dns_client: Option<dns::Client>,
-    pub on_winch: Box<OnSigWinch>,
-    pub cleanup: Box<dyn Fn() + Send>,
+    //pub on_winch: Box<OnSigWinch>,
+    //pub cleanup: Box<dyn Fn() + Send>,
     pub write_to_stdout: Box<dyn FnMut(String) + Send>,
 }
 
@@ -112,12 +135,12 @@ where
 
     let mut active_threads = vec![];
 
-    let keyboard_events = os_input.keyboard_events;
+    //let keyboard_events = os_input.keyboard_events;
     let get_open_sockets = os_input.get_open_sockets;
     let mut write_to_stdout = os_input.write_to_stdout;
     let mut dns_client = os_input.dns_client;
-    let on_winch = os_input.on_winch;
-    let cleanup = os_input.cleanup;
+    //let on_winch = os_input.on_winch;
+    //let cleanup = os_input.cleanup;
 
     let raw_mode = opts.raw;
 
@@ -131,14 +154,15 @@ where
                 .spawn({
                     let ui = ui.clone();
                     let paused = paused.clone();
-                    move || {
+                    /*move || {
                         on_winch({
                             Box::new(move || {
                                 let mut ui = ui.lock().unwrap();
                                 ui.draw(paused.load(Ordering::SeqCst));
                             })
                         });
-                    }
+                    }*/
+                    || {}
                 })
                 .unwrap(),
         );
@@ -148,7 +172,7 @@ where
         .name("display_handler".to_string())
         .spawn({
             let running = running.clone();
-            let paused = paused.clone();
+            //let paused = paused.clone();
             let network_utilization = network_utilization.clone();
             move || {
                 while running.load(Ordering::Acquire) {
@@ -200,7 +224,7 @@ where
             .spawn({
                 let running = running.clone();
                 let display_handler = display_handler.thread().clone();
-                move || {
+                /*move || {
                     for evt in keyboard_events {
                         match evt {
                             Event::Key(Key::Ctrl('c')) | Event::Key(Key::Char('q')) => {
@@ -216,7 +240,8 @@ where
                             _ => (),
                         };
                     }
-                }
+                }*/
+                || {}
             })
             .unwrap(),
     );

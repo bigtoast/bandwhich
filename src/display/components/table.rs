@@ -169,7 +169,7 @@ impl<'a> Table<'a> {
         ::tui::widgets::Table::new(column_names.into_iter(), table_rows)
             .block(Block::default().title(self.title).borders(Borders::ALL))
             .header_style(Style::default().fg(Color::Yellow))
-            .widths(&widths[..])
+            //.widths(&widths[..])
             .style(Style::default())
             .column_spacing(2)
             .render(frame, rect);

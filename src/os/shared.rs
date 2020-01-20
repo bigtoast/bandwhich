@@ -2,14 +2,19 @@ use ::pnet_bandwhich_fork::datalink::Channel::Ethernet;
 use ::pnet_bandwhich_fork::datalink::DataLinkReceiver;
 use ::pnet_bandwhich_fork::datalink::{self, Config, NetworkInterface};
 use ::std::io::{self, stdin, Write};
-use ::termion::event::Event;
-use ::termion::input::TermRead;
+//use signal_hook::iterator::Signals;
 use ::tokio::runtime::Runtime;
 
 use ::std::io::ErrorKind;
 use ::std::time;
 
+#[cfg(target_family = "unix")]
 use signal_hook::iterator::Signals;
+//use ::termion::event::Event;
+//use ::termion::input::TermRead;
+
+#[cfg(target_os = "windows")]
+use crate::os::windows::get_open_sockets;
 
 #[cfg(target_os = "linux")]
 use crate::os::linux::get_open_sockets;
@@ -22,6 +27,7 @@ pub type SigCleanup = dyn Fn() + Send;
 
 pub struct KeyboardEvents;
 
+/*
 impl Iterator for KeyboardEvents {
     type Item = Event;
     fn next(&mut self) -> Option<Event> {
@@ -30,7 +36,7 @@ impl Iterator for KeyboardEvents {
             _ => None,
         }
     }
-}
+}*/
 
 fn get_datalink_channel(
     interface: &NetworkInterface,
@@ -53,7 +59,7 @@ fn get_interface(interface_name: &str) -> Option<NetworkInterface> {
         .into_iter()
         .find(|iface| iface.name == interface_name)
 }
-
+/*
 fn sigwinch() -> (Box<OnSigWinch>, Box<SigCleanup>) {
     let signals = Signals::new(&[signal_hook::SIGWINCH]).unwrap();
     let on_winch = {
@@ -71,7 +77,7 @@ fn sigwinch() -> (Box<OnSigWinch>, Box<SigCleanup>) {
         signals.close();
     };
     (Box::new(on_winch), Box::new(cleanup))
-}
+}*/
 
 fn create_write_to_stdout() -> Box<dyn FnMut(String) + Send> {
     Box::new({
@@ -133,7 +139,7 @@ pub fn get_input(
 
     let keyboard_events = Box::new(KeyboardEvents);
     let write_to_stdout = create_write_to_stdout();
-    let (on_winch, cleanup) = sigwinch();
+    //let (on_winch, cleanup) = sigwinch();
     let dns_client = if resolve {
         let mut runtime = Runtime::new()?;
         let resolver = match runtime.block_on(dns::Resolver::new(runtime.handle().clone())) {
@@ -150,10 +156,10 @@ pub fn get_input(
         network_interfaces,
         network_frames: available_network_frames,
         get_open_sockets,
-        keyboard_events,
+        //keyboard_events,
         dns_client,
-        on_winch,
-        cleanup,
+        //on_winch,
+        //cleanup,
         write_to_stdout,
     })
 }
@@ -176,4 +182,10 @@ fn eperm_message() -> &'static str {
     * Build a `setcap(8)` wrapper for `bandwhich` with the following rules:
         `cap_net_raw,cap_net_admin+ep`
     "#
+}
+
+#[inline]
+#[cfg(target_os="windows")]
+fn eperm_message() -> &'static str {
+    "don't work on windows yo."
 }
